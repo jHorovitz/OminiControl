@@ -1,0 +1,4 @@
+out-*.webp
+model-cache
+__pycache__
+.cog

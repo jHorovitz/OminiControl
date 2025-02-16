@@ -1,0 +1,23 @@
+# Configuration for Cog ⚙️
+# Reference: https://cog.run/yaml
+
+build:
+  gpu: true
+  cuda: "12.4"
+  python_version: "3.11"
+  python_packages:
+    - "diffusers==0.32.2"
+    - "transformers==4.48.3"
+    - "numpy==2.2.3"
+    - "pillow==11.1.0"
+    - "peft==0.14.0"
+    - "protobuf==5.29.3"
+    - "sentencepiece==0.2.0"
+    - "opencv-python==4.11.0.86"
+    - "git+https://github.com/asomoza/image_gen_aux.git@b3ba07be8cba37f9ec2a5748ae5d86cc3879e228"
+
+
+  run:
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/latest/download/pget_$(uname -s)_$(uname -m)" && chmod +x /usr/local/bin/pget
+
+predict: "predict.py:SchnellPredictor"

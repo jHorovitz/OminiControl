@@ -7,13 +7,12 @@ class enable_lora:
         self.activated: bool = activated
         if activated:
             return
-        self.lora_modules: List[BaseTunerLayer] = [
-            each for each in lora_modules if isinstance(each, BaseTunerLayer)
-        ]
+        self.lora_modules: List[BaseTunerLayer] = [each for each in lora_modules if isinstance(each, BaseTunerLayer)]
         self.scales = [
             {
                 active_adapter: lora_module.scaling[active_adapter]
                 for active_adapter in lora_module.active_adapters
+                if active_adapter in lora_module.scaling
             }
             for lora_module in self.lora_modules
         ]
@@ -39,19 +38,15 @@ class enable_lora:
             if not isinstance(lora_module, BaseTunerLayer):
                 continue
             for active_adapter in lora_module.active_adapters:
-                lora_module.scaling[active_adapter] = self.scales[i][active_adapter]
+                if active_adapter in lora_module.scaling:
+                    lora_module.scaling[active_adapter] = self.scales[i][active_adapter]
 
 
 class set_lora_scale:
     def __init__(self, lora_modules: List[BaseTunerLayer], scale: float) -> None:
-        self.lora_modules: List[BaseTunerLayer] = [
-            each for each in lora_modules if isinstance(each, BaseTunerLayer)
-        ]
+        self.lora_modules: List[BaseTunerLayer] = [each for each in lora_modules if isinstance(each, BaseTunerLayer)]
         self.scales = [
-            {
-                active_adapter: lora_module.scaling[active_adapter]
-                for active_adapter in lora_module.active_adapters
-            }
+            {active_adapter: lora_module.scaling[active_adapter] for active_adapter in lora_module.active_adapters}
             for lora_module in self.lora_modules
         ]
         self.scale = scale

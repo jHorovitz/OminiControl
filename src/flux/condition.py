@@ -5,12 +5,16 @@ from PIL import Image, ImageFilter
 import numpy as np
 import cv2
 
+from load_pipes import load_depth_processor
+
 from .pipeline_tools import encode_images
 
 condition_dict = {
     "depth": 0,
     "canny": 1,
     "subject": 4,
+    "subject_512": 4,
+    "subject_1024": 4,
     "coloring": 6,
     "deblurring": 7,
     "depth_pred": 8,
@@ -46,15 +50,8 @@ class Condition(object):
         Returns the condition image.
         """
         if condition_type == "depth":
-            from transformers import pipeline
-
-            depth_pipe = pipeline(
-                task="depth-estimation",
-                model="LiheYoung/depth-anything-small-hf",
-                device="cuda",
-            )
             source_image = raw_img.convert("RGB")
-            condition_img = depth_pipe(source_image)["depth"].convert("RGB")
+            condition_img = load_depth_processor()(source_image)[0].convert("RGB")
             return condition_img
         elif condition_type == "canny":
             img = np.array(raw_img)
@@ -63,14 +60,14 @@ class Condition(object):
             return edges
         elif condition_type == "subject":
             return raw_img
+        elif condition_type == "subject_512":
+            return raw_img
+        elif condition_type == "subject_1024":
+            return raw_img
         elif condition_type == "coloring":
             return raw_img.convert("L").convert("RGB")
         elif condition_type == "deblurring":
-            condition_image = (
-                raw_img.convert("RGB")
-                .filter(ImageFilter.GaussianBlur(10))
-                .convert("RGB")
-            )
+            condition_image = raw_img.convert("RGB").filter(ImageFilter.GaussianBlur(10)).convert("RGB")
             return condition_image
         elif condition_type == "fill":
             return raw_img.convert("RGB")
@@ -100,19 +97,19 @@ class Condition(object):
             "depth",
             "canny",
             "subject",
+            "subject_512",
+            "subject_1024",
             "coloring",
             "deblurring",
             "depth_pred",
             "fill",
             "sr",
-            "cartoon"
+            "cartoon",
         ]:
             tokens, ids = encode_images(pipe, self.condition)
         else:
-            raise NotImplementedError(
-                f"Condition type {self.condition_type} not implemented"
-            )
-        if self.position_delta is None and self.condition_type == "subject":
+            raise NotImplementedError(f"Condition type {self.condition_type} not implemented")
+        if self.position_delta is None and self.condition_type in ("subject", "subject_512", "subject_1024"):
             self.position_delta = [0, -self.condition.size[0] // 16]
         if self.position_delta is not None:
             ids[:, 1] += self.position_delta[0]

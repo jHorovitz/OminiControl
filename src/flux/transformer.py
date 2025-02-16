@@ -80,10 +80,7 @@ def tranformer_forward(
         # weight the lora layers by setting `lora_scale` for each PEFT layer
         scale_lora_layers(self, lora_scale)
     else:
-        if (
-            joint_attention_kwargs is not None
-            and joint_attention_kwargs.get("scale", None) is not None
-        ):
+        if joint_attention_kwargs is not None and joint_attention_kwargs.get("scale", None) is not None:
             logger.warning(
                 "Passing `scale` via `joint_attention_kwargs` when not using the PEFT backend is ineffective."
             )
@@ -108,9 +105,7 @@ def tranformer_forward(
     cond_temb = (
         self.time_text_embed(torch.ones_like(timestep) * c_t * 1000, pooled_projections)
         if guidance is None
-        else self.time_text_embed(
-            torch.ones_like(timestep) * c_t * 1000, guidance, pooled_projections
-        )
+        else self.time_text_embed(torch.ones_like(timestep) * c_t * 1000, guidance, pooled_projections)
     )
     encoder_hidden_states = self.context_embedder(encoder_hidden_states)
 
@@ -137,23 +132,19 @@ def tranformer_forward(
 
     for index_block, block in enumerate(self.transformer_blocks):
         if self.training and self.gradient_checkpointing:
-            ckpt_kwargs: Dict[str, Any] = (
-                {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-            )
-            encoder_hidden_states, hidden_states, condition_latents = (
-                torch.utils.checkpoint.checkpoint(
-                    block_forward,
-                    self=block,
-                    model_config=model_config,
-                    hidden_states=hidden_states,
-                    encoder_hidden_states=encoder_hidden_states,
-                    condition_latents=condition_latents if use_condition else None,
-                    temb=temb,
-                    cond_temb=cond_temb if use_condition else None,
-                    cond_rotary_emb=cond_rotary_emb if use_condition else None,
-                    image_rotary_emb=image_rotary_emb,
-                    **ckpt_kwargs,
-                )
+            ckpt_kwargs: Dict[str, Any] = {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
+            encoder_hidden_states, hidden_states, condition_latents = torch.utils.checkpoint.checkpoint(
+                block_forward,
+                self=block,
+                model_config=model_config,
+                hidden_states=hidden_states,
+                encoder_hidden_states=encoder_hidden_states,
+                condition_latents=condition_latents if use_condition else None,
+                temb=temb,
+                cond_temb=cond_temb if use_condition else None,
+                cond_rotary_emb=cond_rotary_emb if use_condition else None,
+                image_rotary_emb=image_rotary_emb,
+                **ckpt_kwargs,
             )
 
         else:
@@ -171,21 +162,14 @@ def tranformer_forward(
 
         # controlnet residual
         if controlnet_block_samples is not None:
-            interval_control = len(self.transformer_blocks) / len(
-                controlnet_block_samples
-            )
+            interval_control = len(self.transformer_blocks) / len(controlnet_block_samples)
             interval_control = int(np.ceil(interval_control))
-            hidden_states = (
-                hidden_states
-                + controlnet_block_samples[index_block // interval_control]
-            )
+            hidden_states = hidden_states + controlnet_block_samples[index_block // interval_control]
     hidden_states = torch.cat([encoder_hidden_states, hidden_states], dim=1)
 
     for index_block, block in enumerate(self.single_transformer_blocks):
         if self.training and self.gradient_checkpointing:
-            ckpt_kwargs: Dict[str, Any] = (
-                {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-            )
+            ckpt_kwargs: Dict[str, Any] = {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
             result = torch.utils.checkpoint.checkpoint(
                 single_block_forward,
                 self=block,
@@ -229,9 +213,7 @@ def tranformer_forward(
 
         # controlnet residual
         if controlnet_single_block_samples is not None:
-            interval_control = len(self.single_transformer_blocks) / len(
-                controlnet_single_block_samples
-            )
+            interval_control = len(self.single_transformer_blocks) / len(controlnet_single_block_samples)
             interval_control = int(np.ceil(interval_control))
             hidden_states[:, encoder_hidden_states.shape[1] :, ...] = (
                 hidden_states[:, encoder_hidden_states.shape[1] :, ...]
